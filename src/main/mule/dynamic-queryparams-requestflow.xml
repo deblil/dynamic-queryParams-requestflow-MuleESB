@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="fdf25cc4-2ae8-40b6-acb5-c5144917309b" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="dynamic-queryparams-requestflowFlow" doc:id="b11627b2-d6cf-4912-b35d-d969fc228aaf" >
+		<http:listener doc:name="/GET" doc:id="6521d5e8-dd41-4c98-ba22-f250f4f68e81" config-ref="HTTP_Listener_config" path="get-data"/>
+		<set-variable value="#[attributes.queryParams.name]" doc:name="Name" doc:id="53f1db1b-9ec4-4eca-bed8-8efea721b679" variableName="name"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="4571ff7a-2092-429d-8577-1a19d7453551" >
+			<route >
+				<http:request method="GET" doc:name="Genderize" doc:id="c2c9da58-61a6-4538-bebd-fa3c5fc6cdde" url='#["https://api.genderize.io?name=" ++ vars.name]'/>
+			</route>
+			<route >
+				<http:request method="GET" doc:name="Nationalize" doc:id="85135179-8371-462a-84d6-d02cc2f328e0" url='#["https://api.nationalize.io?name=" ++ vars.name]'/>
+			</route>
+		</scatter-gather>
+		<ee:transform doc:name="combine" doc:id="5c908356-f8bd-4346-8f45-22aab9850124" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+"gender": payload."0".payload,
+"nationality": payload."1".payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
